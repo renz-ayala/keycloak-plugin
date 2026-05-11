@@ -53,8 +53,12 @@ public class CustomUserStorageProvider
             RealmModel realm,
             String username) {
 
+        System.out.println("!!! INTENTANDO BUSCAR EN ORACLE A: " + username);
+
+        try { Class.forName("oracle.jdbc.OracleDriver"); } catch (Exception e) {}
+
         try (Connection connection = DriverManager.getConnection(
-                "jdbc:oracle:thin:@host.docker.internal:1521/XE",
+                "jdbc:oracle:thin:@192.168.1.4:1521/XE",
                 "SYSTEM",
                 "Greg1234.Database")) {
 
@@ -67,22 +71,30 @@ public class CustomUserStorageProvider
             ResultSet resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
+                System.out.println("!!! USUARIO ENCONTRADO EN DB: " + username);
+                final String finalUsername = username;
 
-                return new AbstractUserAdapter(session, realm, model) {
-
+                AbstractUserAdapter adapter = new AbstractUserAdapter(session, realm, model) {
                     @Override
                     public String getUsername() {
-                        return username;
+                        return finalUsername;
                     }
 
                     @Override
                     public SubjectCredentialManager credentialManager() {
-                        return null;
+                        return session.users().getUserCredentialManager(this);
                     }
                 };
+
+                adapter.setSingleAttribute(UserModel.USERNAME, finalUsername);
+
+                return adapter;
+            }else {
+                System.out.println("!!! LA DB NO DEVOLVIÓ NADA PARA: " + username);
             }
 
         } catch (SQLException e) {
+            System.err.println("!!! ERROR DE SQL EN EL PLUGIN:");
             e.printStackTrace();
         }
 
@@ -123,7 +135,7 @@ public class CustomUserStorageProvider
         }
 
         try (Connection connection = DriverManager.getConnection(
-                "jdbc:oracle:thin:@host.docker.internal:1521/XE",
+                "jdbc:oracle:thin:@192.168.1.4:1521/XE",
                 "SYSTEM",
                 "Greg1234.Database")) {
 
