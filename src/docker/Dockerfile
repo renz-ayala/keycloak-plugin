@@ -22,4 +22,4 @@ ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 ## docker stop keycloak-sso
 ## docker rm -f keycloak-sso
 ## docker build --no-cache -t keycloak-sunarp-custom .
-## docker run --name keycloak-sso --network keycloak-network -p 17101:8080 --env-file .env keycloak-sunarp-custom start-dev
+## docker run --name keycloak-sso --network keycloak-network -p 17101:8080 -v .\keycloak-themes:/opt/keycloak/themes --env-file .env keycloak-sunarp-custom start-dev

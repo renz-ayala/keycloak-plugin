@@ -11,6 +11,8 @@ import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.adapter.AbstractUserAdapter;
 import org.keycloak.storage.user.UserLookupProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,6 +25,7 @@ import java.util.Map;
 
 public class CustomUserStorageProvider implements UserStorageProvider, UserLookupProvider, CredentialInputValidator
 {
+    private static final Logger log = LoggerFactory.getLogger(CustomUserStorageProvider.class);
     private final KeycloakSession _session;
     private final ComponentModel _model;
 
@@ -44,7 +47,6 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     @Override
     public UserModel getUserById(RealmModel realm, String id)
     {
-        //return getUserByUsername(realm, id);
         return null;
     }
 
@@ -52,25 +54,23 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     public UserModel getUserByUsername(RealmModel realm, String username)
     {
 
-        System.out.println("!!! INTENTANDO BUSCAR EN ORACLE A: " + username);
+        log.info("!!! INTENTANDO BUSCAR EN ORACLE A: {}", username);
 
         try
         {
             Class.forName("oracle.jdbc.OracleDriver");
         } catch (Exception e)
         {
-            System.out.println("FALLA EN EL CLASS FORNAME");
-            System.out.println(e.getMessage());
-            e.printStackTrace();
+            log.error("Falla en el driver: ", e);
         }
 
-        System.out.println("DB_URL: " + _db_url);
-        System.out.println("DB_USER: " + _db_username);
-        System.out.println("INTENTANDO CONEXION...");
+        log.info("DB_URL: {}", _db_url);
+        log.info("DB_USER: {}", _db_username);
+        log.info("INTENTANDO CONEXION...");
 
         try (Connection connection = DriverManager.getConnection(_db_url, _db_username, _db_password))
         {
-            System.out.println("LLEGO AL QUERY");
+            log.info("Conexion establecida");
 
             PreparedStatement statement = connection.prepareStatement(
                     "SELECT username, nombres, apellidos, correo, activo FROM user1.sso_users WHERE username = ?"
@@ -86,7 +86,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
                 String correo = resultSet.getString("correo");
                 int activo = resultSet.getInt("activo");
 
-                System.out.println("!!! USUARIO ENCONTRADO EN DB: " +  username);
+                log.info("USUARIO ENCONTRADO EN DB: {}", username);
 
                 final String finalUsername = username;
                 final String finalNombres = nombres;
@@ -94,7 +94,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
                 final String finalCorreo = correo;
                 final boolean finalActivo = activo == 1;
 
-                AbstractUserAdapter adapter = new AbstractUserAdapter(_session, realm, _model)
+                return new AbstractUserAdapter(_session, realm, _model)
                 {
                     @Override
                     public String getUsername()
@@ -164,19 +164,14 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
                     }
 
                 };
-
-                //adapter.setSingleAttribute(UserModel.USERNAME, finalUsername);
-
-                return adapter;
             }else
             {
-                System.out.println("!!! LA DB NO DEVOLVIÓ NADA PARA: " + username);
+                log.info("En DB, No existe el usuario : {}", username);
             }
 
         } catch (SQLException e)
         {
-            System.err.println("!!! ERROR DE SQL EN EL PLUGIN:");
-            e.printStackTrace();
+            log.error("ERROR ejecutando el driver manager connection :", e);
         }
 
         return null;
@@ -210,22 +205,21 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         }
         catch (Exception e)
         {
-            System.out.println("FALLA EN CLASS FORNAME EN ISVALID");
-            e.printStackTrace();
+            log.error("Falla en el driver", e);
         }
 
         if (!supportsCredentialType(input.getType()))
         {
-            System.out.println("FALLO EL SUPPORT");
+            log.error("Error en el tipado de credenciales");
             return false;
         }
 
-        System.out.println("DB_URL: " + _db_url);
-        System.out.println("DB_USER: " + _db_username);
-        System.out.println("INTENTANDO CONEXION...");
+        log.info("VALIDANDO CONECCION");
 
         try (Connection connection = DriverManager.getConnection(_db_url, _db_username, _db_password))
         {
+            log.info("CONECCION ESTABLECIDA");
+
             PreparedStatement statement = connection.prepareStatement(
                     "SELECT contrasenia FROM user1.sso_users WHERE username = ?"
             );
@@ -236,6 +230,8 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
 
             if (resultSet.next())
             {
+                log.info("CONECCION VALIDA = TRUE");
+
                 String dbPassword = resultSet.getString("contrasenia");
 
                 return dbPassword.equals(
@@ -245,8 +241,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
 
         } catch (SQLException e)
         {
-            System.out.println("FALLO LA CONECCION");
-            e.printStackTrace();
+            log.error("Error en la coneccion para la validacion", e);
         }
 
         return false;
