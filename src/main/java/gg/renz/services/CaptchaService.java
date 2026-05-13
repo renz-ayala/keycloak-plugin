@@ -20,7 +20,7 @@ public class CaptchaService
         if (token == null || token.isEmpty()) return false;
 
         ObjectMapper mapper = new ObjectMapper();
-        TurnstileRequest input = new TurnstileRequest("0x4AAAAAAB76DAPfJazllHj1fU9e4Xqhnpw", token);
+        TurnstileRequest input = new TurnstileRequest(System.getenv("TURNSTILE_SECRET_KEY"), token);
 
         try
         {

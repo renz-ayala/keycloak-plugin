@@ -70,7 +70,8 @@ public class EmailService
 
     }
 
-    public boolean verifyCode(String code, String email){
+    public boolean verifyCode(String code, String email)
+    {
         boolean codeIsValid = dataAccess.verifyCode(email, code);
         if(codeIsValid){
             dataAccess.updateCodeAtDatabase(email, code);

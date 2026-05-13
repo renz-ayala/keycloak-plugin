@@ -31,9 +31,9 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     private final KeycloakSession _session;
     private final ComponentModel _model;
 
-    String _db_url = "jdbc:oracle:thin:@172.18.1.73:1521/DESABODEGA";
-    String _db_username = "user1";
-    String _db_password = "user1";
+    private final String _db_url = System.getenv("ORACLE_DATABASE_URL");
+    private final String _db_username = System.getenv("ORACLE_DATABASE_USER");
+    private final String _db_password = System.getenv("ORACLE_DATABASE_PASSWORD");
 
     public CustomUserStorageProvider(KeycloakSession session, ComponentModel model)
     {
@@ -239,7 +239,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
 
             if (resultSet.next())
             {
-                log.info("CONECCION VALIDA = TRUE");
+                log.info("VALIDANDO CONTRASEÑA");
 
                 String dbPassword = resultSet.getString("contrasenia");
 

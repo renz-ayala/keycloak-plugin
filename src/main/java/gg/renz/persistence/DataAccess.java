@@ -13,9 +13,9 @@ public class DataAccess
     private Connection createConnection() throws Exception
     {
         return DriverManager.getConnection(
-                "jdbc:oracle:thin:@172.18.1.73:1521/DESABODEGA",
-                "user1",
-                "user1"
+                System.getenv("ORACLE_DATABASE_URL"),
+                System.getenv("ORACLE_DATABASE_USER"),
+                System.getenv("ORACLE_DATABASE_PASSWORD")
         );
     }
 
