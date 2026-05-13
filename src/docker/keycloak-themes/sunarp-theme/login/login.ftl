@@ -102,7 +102,7 @@
 
         .captcha-btn:hover{
             background: #1e293b;
-            transform: rotate(90deg);
+            transform: rotate(45deg);
         }
 
         .captcha-btn:active{
@@ -113,6 +113,31 @@
             display: flex;
             align-items: center;
         }
+
+        .verify-actions{
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 14px;
+        }
+
+        .link-btn{
+            background: transparent;
+            border: none;
+            color: #2563eb;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .link-btn:hover{
+            text-decoration: underline;
+        }
+        
+        .link-btn:disabled{
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
     </style>
 </head>
 
@@ -134,6 +159,17 @@
 
             <label>
                 <input
+                        id="documentToValidate"
+                        name="password"
+                        placeholder="DNI"
+                        class="input"
+                        autocomplete="current-password"
+                />
+            </label>
+
+            <label>
+                <input
+                        id="emailToValidate"
                         name="username"
                         placeholder="Correo Electrónico"
                         class="input"
@@ -144,13 +180,28 @@
 
             <label>
                 <input
-                        name="password"
-                        type="password"
-                        placeholder="DNI"
+                        id="codeToVerify"
+                        name="codetoverify"
+                        placeholder="Código de verificación"
                         class="input"
-                        autocomplete="current-password"
                 />
             </label>
+
+            <label>
+                <input
+                        id="captchaToken"
+                        type="hidden"
+                        name="captchatoken"
+                />
+            </label>
+
+            <div class="verify-actions">
+                <button id="sendCodeButton" type="button" class="link-btn" onclick="sendEmail()">
+                    Enviar código al correo
+                </button>
+            </div>
+
+            <div id="email-status" class="email-status"></div>
 
             <div class="captcha-row">
                 <div id="turnstile-container"></div>
@@ -187,8 +238,13 @@
 
 <script>
 
-    let token = '';
     let widgetId;
+    let captchaVerified = false;
+    const baseUrl = '/realms/sunarp-realm/custom-resources';
+
+    function enableLoginButton(){
+        document.getElementById('login-btn').disabled = !(captchaVerified);
+    }
 
     function initTurnstile(){
 
@@ -199,13 +255,15 @@
                 theme: 'light',
 
                 callback: function (solvedToken) {
-                    token = solvedToken;
-                    document.getElementById('login-btn').disabled = false;
+                    document.getElementById('captchaToken').value = solvedToken;
+                    captchaVerified = true;
+                    enableLoginButton();
                 },
 
                 'expired-callback': function (){
-                    token = '';
-                    document.getElementById('login-btn').disabled = true;
+                    document.getElementById('captchaToken').value = '';
+                    captchaVerified = false;
+                    enableLoginButton();
                 }
             });
 
@@ -216,11 +274,57 @@
     }
 
     function refreshCaptcha(){
-        token = '';
-        document.getElementById('login-btn').disabled = true;
+        document.getElementById('captchaToken').value = '';
+        captchaVerified = false;
+        enableLoginButton();
 
         if(window.turnstile && widgetId){
             window.turnstile.reset(widgetId);
+        }
+    }
+
+    async function sendEmail() {
+        const email = document.getElementById('emailToValidate').value;
+        const button = document.getElementById('sendCodeButton');
+
+        try {
+
+            button.disabled = true;
+            button.innerText = 'Enviando correo...';
+
+            const url = baseUrl + '/generate-code';
+            const response = await fetch(url , {
+                method: 'POST',
+                headers: {
+                    'Content-Type':'application/json'
+                },
+                body: JSON.stringify({
+                    email
+                })
+            });
+            const data = await response.json();
+
+            let seconds = 30;
+            if(data.success){
+                button.innerText = 'Se ha enviado el correo';
+            }
+            button.innerText = 'Podrá reenviar en ' + seconds;
+
+            const interval = setInterval( () => {
+                seconds--;
+                button.innerText = 'Podrá reenviar en ' + seconds;
+
+                if(seconds <= 0){
+                    clearInterval(interval);
+                    button.disabled = false;
+                    button.innerText = 'Enviar código al correo';
+                }
+            }, 1000);
+
+        }catch (e) {
+            console.error(e);
+            button.disabled = false;
+            button.innerText = 'Enviar código al correo';
         }
     }
 

@@ -1,5 +1,6 @@
 package gg.renz;
 
+import gg.renz.providers.CustomUserStorageProvider;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.storage.UserStorageProviderFactory;

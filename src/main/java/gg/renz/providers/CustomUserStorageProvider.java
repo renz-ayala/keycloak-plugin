@@ -1,5 +1,7 @@
-package gg.renz;
+package gg.renz.providers;
 
+import gg.renz.services.CaptchaService;
+import gg.renz.services.EmailService;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.credential.CredentialInput;
 import org.keycloak.credential.CredentialInputValidator;
@@ -214,7 +216,14 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             return false;
         }
 
-        log.info("VALIDANDO CONECCION");
+        var formData = _session.getContext().getHttpRequest().getDecodedFormParameters();
+        String code = formData.getFirst("codetoverify");
+        String token = formData.getFirst("captchatoken");
+
+        if(!new EmailService().verifyCode(code, user.getUsername())) return false;
+        if(!new CaptchaService().verifyCaptcha(token)) return false;
+
+        log.info("codigo y tokenCaptcha valido => VALIDANDO CONECCION CON ORACLE");
 
         try (Connection connection = DriverManager.getConnection(_db_url, _db_username, _db_password))
         {
