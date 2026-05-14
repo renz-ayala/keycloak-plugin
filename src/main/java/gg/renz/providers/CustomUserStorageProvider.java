@@ -12,6 +12,7 @@ import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.adapter.AbstractUserAdapter;
+import org.keycloak.storage.adapter.AbstractUserAdapterFederatedStorage;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,8 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     private final String _db_url = System.getenv("ORACLE_DATABASE_URL");
     private final String _db_username = System.getenv("ORACLE_DATABASE_USER");
     private final String _db_password = System.getenv("ORACLE_DATABASE_PASSWORD");
+
+    private final String _USERS_QUERY = "SELECT contrasenia, username, nombres, apellidos, correo, activo FROM user1.sso_users WHERE username = ?";
 
     public CustomUserStorageProvider(KeycloakSession session, ComponentModel model)
     {
@@ -74,52 +77,49 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         {
             log.info("Conexion establecida");
 
-            PreparedStatement statement = connection.prepareStatement(
-                    "SELECT username, nombres, apellidos, correo, activo FROM user1.sso_users WHERE username = ?"
-            );
-
+            PreparedStatement statement = connection.prepareStatement(_USERS_QUERY);
             statement.setString(1, username);
+
             ResultSet resultSet = statement.executeQuery();
 
             if (resultSet.next())
             {
-                String nombres = resultSet.getString("nombres");
-                String apellidos = resultSet.getString("apellidos");
-                String correo = resultSet.getString("correo");
-                int activo = resultSet.getInt("activo");
-
                 log.info("USUARIO ENCONTRADO EN DB: {}", username);
+                String names = resultSet.getString("nombres");
+                String lastNames = resultSet.getString("apellidos");
+                String email = resultSet.getString("correo");
+                int active = resultSet.getInt("activo");
+                final boolean isActive = active == 1;
 
-                final String finalUsername = username;
-                final String finalNombres = nombres;
-                final String finalApellidos = apellidos;
-                final String finalCorreo = correo;
-                final boolean finalActivo = activo == 1;
-
-                return new AbstractUserAdapter(_session, realm, _model)
+                return new AbstractUserAdapterFederatedStorage(_session, realm, _model)
                 {
                     @Override
                     public String getUsername()
                     {
-                        return finalUsername;
+                        return username;
+                    }
+
+                    @Override
+                    public void setUsername(String username)
+                    {
                     }
 
                     @Override
                     public String getFirstName()
                     {
-                        return finalNombres;
+                        return names;
                     }
 
                     @Override
                     public String getLastName()
                     {
-                        return finalApellidos;
+                        return lastNames;
                     }
 
                     @Override
                     public String getEmail()
                     {
-                        return finalCorreo;
+                        return email;
                     }
 
                     @Override
@@ -131,7 +131,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
                     @Override
                     public boolean isEnabled()
                     {
-                        return finalActivo;
+                        return isActive;
                     }
 
                     @Override
@@ -143,26 +143,13 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
                     @Override
                     public String getFirstAttribute(String name)
                     {
-                        return switch (name)
-                        {
-                            case UserModel.EMAIL -> finalCorreo;
-                            case UserModel.FIRST_NAME -> finalNombres;
-                            case UserModel.LAST_NAME -> finalApellidos;
-                            default -> null;
-                        };
+                        return super.getFirstAttribute(name);
                     }
 
                     @Override
                     public Map<String, List<String>> getAttributes()
                     {
-                        Map<String, List<String>> attributes = new HashMap<>();
-
-                        attributes.put(UserModel.USERNAME, List.of(finalUsername));
-                        attributes.put(UserModel.EMAIL, List.of(finalCorreo));
-                        attributes.put(UserModel.FIRST_NAME, List.of(finalNombres));
-                        attributes.put(UserModel.LAST_NAME, List.of(finalApellidos));
-
-                        return attributes;
+                        return new HashMap<>(super.getAttributes());
                     }
 
                 };
@@ -200,7 +187,6 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     @Override
     public boolean isValid(RealmModel realm, UserModel user, CredentialInput input)
     {
-
         try
         {
             Class.forName("oracle.jdbc.OracleDriver");
@@ -219,6 +205,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         var formData = _session.getContext().getHttpRequest().getDecodedFormParameters();
         String code = formData.getFirst("codetoverify");
         String token = formData.getFirst("captchatoken");
+        String publicIp = formData.getFirst("public-ip");
 
         if(!new EmailService().verifyCode(code, user.getUsername())) return false;
         if(!new CaptchaService().verifyCaptcha(token)) return false;
@@ -229,10 +216,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         {
             log.info("CONECCION ESTABLECIDA");
 
-            PreparedStatement statement = connection.prepareStatement(
-                    "SELECT contrasenia FROM user1.sso_users WHERE username = ?"
-            );
-
+            PreparedStatement statement = connection.prepareStatement(_USERS_QUERY);
             statement.setString(1, user.getUsername());
 
             ResultSet resultSet = statement.executeQuery();
@@ -243,9 +227,18 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
 
                 String dbPassword = resultSet.getString("contrasenia");
 
-                return dbPassword.equals(
-                        input.getChallengeResponse()
-                );
+                boolean isAuthorized = dbPassword.equals(input.getChallengeResponse());
+                log.info("Contraseña válida: {}", isAuthorized);
+
+                if(isAuthorized){
+                    String client = _session.getContext().getClient().getClientId();
+                    _session.getContext().getAuthenticationSession().setUserSessionNote("docType", "09");
+                    _session.getContext().getAuthenticationSession().setUserSessionNote("documentNumber", dbPassword);
+                    _session.getContext().getAuthenticationSession().setUserSessionNote("ipAddress", publicIp);
+                    _session.getContext().getAuthenticationSession().setUserSessionNote("clientId", client);
+                }
+
+                return isAuthorized;
             }
 
         } catch (SQLException e)
@@ -253,6 +246,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             log.error("Error en la coneccion para la validacion", e);
         }
 
+        log.error("No se pudo validar");
         return false;
     }
 }

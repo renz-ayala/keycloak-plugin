@@ -292,9 +292,17 @@
     }
 
     async function getPublicIp(){
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        document.getElementById('public-ip').value = data.api;
+        try{
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            if(data && data.ip){
+                document.getElementById('public-ip').value = data.ip;
+            }
+        }catch (e) {
+            console.error(e);
+            document.getElementById('public-ip').value = '0.0.0.0';
+        }
+
     }
 
     async function sendEmail() {
