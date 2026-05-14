@@ -195,6 +195,14 @@
                 />
             </label>
 
+            <label>
+                <input
+                        id="public-ip"
+                        type="hidden"
+                        name="public-ip"
+                />
+            </label>
+
             <div class="verify-actions">
                 <button id="sendCodeButton" type="button" class="link-btn" onclick="sendEmail()">
                     Enviar código al correo
@@ -283,6 +291,12 @@
         }
     }
 
+    async function getPublicIp(){
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        document.getElementById('public-ip').value = data.api;
+    }
+
     async function sendEmail() {
         const email = document.getElementById('emailToValidate').value;
         const button = document.getElementById('sendCodeButton');
@@ -328,6 +342,7 @@
         }
     }
 
+    getPublicIp();
     window.addEventListener('load', () => {
         initTurnstile();
     });
