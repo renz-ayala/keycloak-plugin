@@ -1,22 +1,21 @@
 package gg.renz;
 
+import gg.renz.providers.CustomUserStorageProvider;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.storage.UserStorageProviderFactory;
 
-public class CustomUserStorageProviderFactory
-        implements UserStorageProviderFactory<CustomUserStorageProvider> {
-
+public class CustomUserStorageProviderFactory implements UserStorageProviderFactory<CustomUserStorageProvider>
+{
     @Override
-    public String getId() {
-        return "oracle-storage-gg";
+    public String getId()
+    {
+        return "oracle-storage-user1";
     }
 
     @Override
-    public CustomUserStorageProvider create(
-            KeycloakSession session,
-            ComponentModel model) {
-
+    public CustomUserStorageProvider create(KeycloakSession session, ComponentModel model)
+    {
         return new CustomUserStorageProvider(session, model);
     }
 }
