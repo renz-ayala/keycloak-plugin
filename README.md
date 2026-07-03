@@ -1,3 +1,47 @@
+# Configuracion de SSO con Keycloak y plugin en Java
+Este repositorio contiene principalmente el plugin SPI para Keycloak hecho en java.
+
+Desarrollado con :
+* **Java 21**
+* **Keycloak 26+**
+---
+
+## Detalle importante:
+El proyecto esta hecho para compilar el plugion SPI, pero contiene tambien la configuración para levantarlo en un entorno docker. 
+Asi tambien contiene el .ftl para el diseño del login.
+---
+
+## Requisitos Previos
+* Java SE Development Kit (JDK) 21.
+* Docker Desktop instalado y en ejecución.
+
+---
+
+## Guía de Despliegue Local
+Debe ubicarse en la raíz de proyecto, y seguir los siguientes pasos:
+
+### 1. Ubique el archivo Dockerfile
+Keycloak necesita conectase a una base postgres para funcionar, dirijase a la ruta src/docker.Y ejecute lo siguiente:
+```bash
+docker run --name postgres -e POSTGRES_DB=keycloak -e POSTGRES_USER=keycloak -e POSTGRES_PASSWORD=keycloak -p 5432:5432 -d postgres:16
+docker network create --subnet=192.168.250.0/24 keycloak-network
+docker network connect keycloak-network postgres
+```
+
+### 2. Compilación y Construcción del SPI
+Ejecute el package de maven. Y luego proceda con el comando:
+```bash
+Copy-Item .\target\sso-plugin-1.0.jar .\src\docker\keycloak-plugins
+```
+y luego dirijase a la carpeta de docker:
+```bash
+cd .\src\docker\
+docker build --no-cache -t keycloak-sunarp-custom .
+docker run --name keycloak-sso --network keycloak-network -p 17101:8080 -v .\keycloak-themes:/opt/keycloak/themes --env-file .env keycloak-sunarp-custom start-dev
+```
+
+## Información extra
+
 1. Link para descargar el ojdbc:
 https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html
 
