@@ -7,12 +7,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.services.resource.RealmResourceProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CustomResourcesProvider implements RealmResourceProvider
 {
-    private static final Logger log = LoggerFactory.getLogger(CustomResourcesProvider.class);
     private final KeycloakSession _session;
     EmailService emailService = new EmailService();
 

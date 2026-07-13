@@ -248,7 +248,7 @@
 
     let widgetId;
     let captchaVerified = false;
-    const baseUrl = '/realms/sunarp-realm/custom-resources';
+    const baseUrl = '/realms/greg-realm/custom-resources';
 
     function enableLoginButton(){
         document.getElementById('login-btn').disabled = !(captchaVerified);

@@ -11,7 +11,6 @@ import org.keycloak.models.SubjectCredentialManager;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.storage.UserStorageProvider;
-import org.keycloak.storage.adapter.AbstractUserAdapter;
 import org.keycloak.storage.adapter.AbstractUserAdapterFederatedStorage;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     private final String _db_username = System.getenv("ORACLE_DATABASE_USER");
     private final String _db_password = System.getenv("ORACLE_DATABASE_PASSWORD");
 
-    private final String _USERS_QUERY = "SELECT contrasenia, username, nombres, apellidos, correo, activo FROM user1.sso_users WHERE username = ?";
+    private final String _USERS_QUERY = "SELECT contrasenia, username, nombres, apellidos, correo, activo FROM schema.sso_users WHERE username = ?";
 
     public CustomUserStorageProvider(KeycloakSession session, ComponentModel model)
     {

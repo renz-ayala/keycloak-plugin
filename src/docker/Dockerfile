@@ -21,5 +21,5 @@ ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 ## Copy-Item .\target\sso-plugin-1.0.jar .\src\docker\keycloak-plugins
 ## cd .\src\docker\
 ## docker rm -f keycloak-sso
-## docker build --no-cache -t keycloak-sunarp-custom .
-## docker run --name keycloak-sso --network keycloak-network -p 17101:8080 -v .\keycloak-themes:/opt/keycloak/themes --env-file .env keycloak-sunarp-custom start-dev
+## docker build --no-cache -t keycloak-custom .
+## docker run --name keycloak-sso --network keycloak-network -p 17101:8080 -v .\keycloak-themes:/opt/keycloak/themes --env-file .env keycloak-custom start-dev

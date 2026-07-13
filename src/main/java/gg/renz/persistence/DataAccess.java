@@ -21,7 +21,7 @@ public class DataAccess
 
     public void generateVerifyCode(String email, String code)
     {
-        String sql = "{ call user1.pkg_siguelo.sp_ins_email(?,?,?,?,?,?) }";
+        String sql = "{ call SCHEMA.PKG_EMAIL.SP_SEND_EMAIL(?,?,?,?,?,?) }";
 
         try (Connection conn = createConnection(); CallableStatement cs = conn.prepareCall(sql))
         {
@@ -51,7 +51,7 @@ public class DataAccess
 
     public boolean verifyCode(String email, String code)
     {
-        String sql = "{ call user1.pkg_siguelo.sp_list_email(?,?,?,?,?,?) }";
+        String sql = "{ call SCHEMA.PKG_EMAIL.SP_VERIFY_CODE(?,?,?,?,?,?) }";
 
         try (Connection conn = createConnection(); CallableStatement cs = conn.prepareCall(sql))
         {
@@ -93,7 +93,7 @@ public class DataAccess
 
     public void updateCodeAtDatabase(String eMail, String code)
     {
-        String sql = "{ call user1.pkg_siguelo.sp_upd_email(?,?,?,?,?,?) }";
+        String sql = "{ call SCHEMA.PKG_EMAIL.SP_VALIDATE_CODE(?,?,?,?,?,?) }";
 
         try (Connection cn = createConnection() ; CallableStatement calls = cn.prepareCall(sql))
         {
