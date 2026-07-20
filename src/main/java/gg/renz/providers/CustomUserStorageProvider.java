@@ -16,11 +16,7 @@ import org.keycloak.storage.user.UserLookupProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,19 +24,19 @@ import java.util.Map;
 public class CustomUserStorageProvider implements UserStorageProvider, UserLookupProvider, CredentialInputValidator
 {
     private static final Logger log = LoggerFactory.getLogger(CustomUserStorageProvider.class);
-    private final KeycloakSession _session;
-    private final ComponentModel _model;
 
-    private final String _db_url = System.getenv("ORACLE_DATABASE_URL");
-    private final String _db_username = System.getenv("ORACLE_DATABASE_USER");
-    private final String _db_password = System.getenv("ORACLE_DATABASE_PASSWORD");
+    private final KeycloakSession session;
+    private final ComponentModel model;
 
-    private final String _USERS_QUERY = "SELECT contrasenia, username, nombres, apellidos, correo, activo FROM schema.sso_users WHERE username = ?";
+    private final String DB_URL = System.getenv("ORACLE_DATABASE_URL");
+    private final String DB_USERNAME = System.getenv("ORACLE_DATABASE_USER");
+    private final String DB_PASSWORD = System.getenv("ORACLE_DATABASE_PASSWORD");
+
 
     public CustomUserStorageProvider(KeycloakSession session, ComponentModel model)
     {
-        this._session = session;
-        this._model = model;
+        this.session = session;
+        this.model = model;
     }
 
     @Override
@@ -62,100 +58,107 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
 
         try
         {
-            Class.forName("oracle.jdbc.OracleDriver");
+            //Class.forName("oracle.jdbc.OracleDriver");
+            Class.forName("org.postgresql.Driver");
         } catch (Exception e)
         {
             log.error("Falla en el driver: ", e);
         }
 
-        log.info("DB_URL: {}", _db_url);
-        log.info("DB_USER: {}", _db_username);
+        log.info("DB_URL: {}", DB_URL);
+        log.info("DB_USER: {}", DB_USERNAME);
         log.info("INTENTANDO CONEXION...");
 
-        try (Connection connection = DriverManager.getConnection(_db_url, _db_username, _db_password))
+        String spGetUser = "{CALL user1.sp_get_user_by_username(?, ?, ?, ?, ?)}";
+        try (
+                Connection connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);
+                CallableStatement cs = connection.prepareCall(spGetUser)
+        )
         {
             log.info("Conexion establecida");
+            cs.setString(1, username);
 
-            PreparedStatement statement = connection.prepareStatement(_USERS_QUERY);
-            statement.setString(1, username);
+            cs.registerOutParameter(2, Types.VARCHAR); // p_name
+            cs.registerOutParameter(3, Types.VARCHAR); // p_last_name
+            cs.registerOutParameter(4, Types.VARCHAR); // p_email
+            cs.registerOutParameter(5, Types.INTEGER); // p_active
 
-            ResultSet resultSet = statement.executeQuery();
+            cs.execute();
 
-            if (resultSet.next())
-            {
-                log.info("USUARIO ENCONTRADO EN DB: {}", username);
-                String names = resultSet.getString("nombres");
-                String lastNames = resultSet.getString("apellidos");
-                String email = resultSet.getString("correo");
-                int active = resultSet.getInt("activo");
-                final boolean isActive = active == 1;
+            String name = cs.getString(2);
+            String lastName = cs.getString(3);
+            String email = cs.getString(4);
+            int active = cs.getInt(5);
+            final boolean isActive = active == 1;
 
-                return new AbstractUserAdapterFederatedStorage(_session, realm, _model)
-                {
-                    @Override
-                    public String getUsername()
-                    {
-                        return username;
-                    }
-
-                    @Override
-                    public void setUsername(String username)
-                    {
-                    }
-
-                    @Override
-                    public String getFirstName()
-                    {
-                        return names;
-                    }
-
-                    @Override
-                    public String getLastName()
-                    {
-                        return lastNames;
-                    }
-
-                    @Override
-                    public String getEmail()
-                    {
-                        return email;
-                    }
-
-                    @Override
-                    public boolean isEmailVerified()
-                    {
-                        return true;
-                    }
-
-                    @Override
-                    public boolean isEnabled()
-                    {
-                        return isActive;
-                    }
-
-                    @Override
-                    public SubjectCredentialManager credentialManager()
-                    {
-                        return _session.users().getUserCredentialManager(this);
-                    }
-
-                    @Override
-                    public String getFirstAttribute(String name)
-                    {
-                        return super.getFirstAttribute(name);
-                    }
-
-                    @Override
-                    public Map<String, List<String>> getAttributes()
-                    {
-                        return new HashMap<>(super.getAttributes());
-                    }
-
-                };
-            }else
-            {
-                log.info("En DB, No existe el usuario : {}", username);
+            if (name == null || lastName == null || email == null) {
+                log.info("No existe el usuario: {}", username);
+                return null;
             }
+
+            log.info("USUARIO ENCONTRADO EN DB: {}", username);
+            return new AbstractUserAdapterFederatedStorage(session, realm, model)
+            {
+                @Override
+                public String getUsername()
+                {
+                    return username;
+                }
+
+                @Override
+                public void setUsername(String username)
+                {
+                }
+
+                @Override
+                public String getFirstName()
+                {
+                    return name;
+                }
+
+                @Override
+                public String getLastName()
+                {
+                    return lastName;
+                }
+
+                @Override
+                public String getEmail()
+                {
+                    return email;
+                }
+
+                @Override
+                public boolean isEmailVerified()
+                {
+                    return true;
+                }
+
+                @Override
+                public boolean isEnabled()
+                {
+                    return isActive;
+                }
+
+                @Override
+                public SubjectCredentialManager credentialManager()
+                {
+                    return CustomUserStorageProvider.this.session.users().getUserCredentialManager(this);
+                }
+
+                @Override
+                public String getFirstAttribute(String name)
+                {
+                    return super.getFirstAttribute(name);
+                }
+
+                @Override
+                public Map<String, List<String>> getAttributes()
+                {
+                    return new HashMap<>(super.getAttributes());
+                }
+
+            };
 
         } catch (SQLException e)
         {
@@ -186,9 +189,34 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     @Override
     public boolean isValid(RealmModel realm, UserModel user, CredentialInput input)
     {
+        if (!supportsCredentialType(input.getType()))
+        {
+            log.error("Error en el tipado de credenciales");
+            return false;
+        }
+
+        var formData = session.getContext().getHttpRequest().getDecodedFormParameters();
+        String code = formData.getFirst("codetoverify");
+        String token = formData.getFirst("captchatoken");
+        String publicIp = formData.getFirst("public-ip");
+
+        var emailService = new EmailService();
+        var captchaService = new CaptchaService();
+
+        if(!emailService.verifyCode(code, user.getEmail()))
+        {
+            return false;
+        }
+
+        if(!captchaService.verifyCaptcha(token))
+        {
+            return false;
+        }
+
         try
         {
-            Class.forName("oracle.jdbc.OracleDriver");
+            //Class.forName("oracle.jdbc.OracleDriver");
+            Class.forName("org.postgresql.Driver");
         }
         catch (Exception e)
         {
@@ -201,51 +229,41 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             return false;
         }
 
-        var formData = _session.getContext().getHttpRequest().getDecodedFormParameters();
-        String code = formData.getFirst("codetoverify");
-        String token = formData.getFirst("captchatoken");
-        String publicIp = formData.getFirst("public-ip");
-
-        if(!new EmailService().verifyCode(code, user.getUsername())) return false;
-        if(!new CaptchaService().verifyCaptcha(token)) return false;
-
         log.info("codigo y tokenCaptcha valido => VALIDANDO CONECCION CON ORACLE");
-
-        try (Connection connection = DriverManager.getConnection(_db_url, _db_username, _db_password))
+        String spIsValid = "{CALL user1.sp_validate_password(?, ?, ?)}";
+        try (
+                Connection connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);
+                CallableStatement cs = connection.prepareCall(spIsValid)
+        )
         {
             log.info("CONECCION ESTABLECIDA");
 
-            PreparedStatement statement = connection.prepareStatement(_USERS_QUERY);
-            statement.setString(1, user.getUsername());
+            cs.setString(1, user.getUsername()); //username
+            cs.setString(2, input.getChallengeResponse()); //password
 
-            ResultSet resultSet = statement.executeQuery();
+            cs.registerOutParameter(3, Types.INTEGER);
 
-            if (resultSet.next())
-            {
-                log.info("VALIDANDO CONTRASEÑA");
+            cs.execute();
 
-                String dbPassword = resultSet.getString("contrasenia");
+            int isValidUser = cs.getInt(3);
+            boolean isAuthorized = isValidUser == 1;
 
-                boolean isAuthorized = dbPassword.equals(input.getChallengeResponse());
-                log.info("Contraseña válida: {}", isAuthorized);
+            log.info("VALIDANDO CONTRASEÑA");
+            log.info("Contraseña válida: {}", isAuthorized);
 
-                if(isAuthorized){
-                    String client = _session.getContext().getClient().getClientId();
-                    _session.getContext().getAuthenticationSession().setUserSessionNote("docType", "09");
-                    _session.getContext().getAuthenticationSession().setUserSessionNote("documentNumber", dbPassword);
-                    _session.getContext().getAuthenticationSession().setUserSessionNote("ipAddress", publicIp);
-                    _session.getContext().getAuthenticationSession().setUserSessionNote("clientId", client);
-                }
-
-                return isAuthorized;
+            if(isAuthorized){
+                String client = session.getContext().getClient().getClientId();
+                session.getContext().getAuthenticationSession().setUserSessionNote("ipAddress", publicIp);
+                session.getContext().getAuthenticationSession().setUserSessionNote("clientId", client);
             }
+
+            return isAuthorized;
+
 
         } catch (SQLException e)
         {
             log.error("Error en la coneccion para la validacion", e);
+            return false;
         }
-
-        log.error("No se pudo validar");
-        return false;
     }
 }

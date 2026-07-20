@@ -159,22 +159,23 @@
 
             <label>
                 <input
-                        id="documentToValidate"
-                        name="password"
-                        placeholder="DNI"
+                        id="usernameToValidate"
+                        name="username"
+                        placeholder="Nombre de Usuario"
                         class="input"
-                        autocomplete="current-password"
+                        value="${login.username!}"
+                        autocomplete="username"
                 />
             </label>
 
             <label>
                 <input
-                        id="emailToValidate"
-                        name="username"
-                        placeholder="Correo Electrónico"
+                        id="passwordToValidate"
+                        type="password"
+                        name="password"
+                        placeholder="Contraseña"
                         class="input"
-                        value="${login.username!}"
-                        autocomplete="username"
+                        autocomplete="current-password"
                 />
             </label>
 
@@ -306,7 +307,7 @@
     }
 
     async function sendEmail() {
-        const email = document.getElementById('emailToValidate').value;
+        const email = document.getElementById('usernameToValidate').value;
         const button = document.getElementById('sendCodeButton');
 
         try {

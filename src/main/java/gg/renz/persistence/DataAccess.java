@@ -8,7 +8,6 @@ import java.sql.*;
 public class DataAccess
 {
     private static final Logger log = LoggerFactory.getLogger(DataAccess.class);
-    private final String _APP_ID = "SSO-KEYCLOAK";
 
     private Connection createConnection() throws Exception
     {
@@ -21,24 +20,24 @@ public class DataAccess
 
     public void generateVerifyCode(String email, String code)
     {
-        String sql = "{ call SCHEMA.PKG_EMAIL.SP_SEND_EMAIL(?,?,?,?,?,?) }";
+        String sql = "{ call user1.sp_generate_verify_code(?,?,?,?) }";
 
-        try (Connection conn = createConnection(); CallableStatement cs = conn.prepareCall(sql))
+        try (
+                Connection connection = createConnection();
+                CallableStatement cs = connection.prepareCall(sql))
         {
             cs.setString(1, email);
             cs.setString(2, code);
-            cs.setString(3, email);
-            cs.setString(4, _APP_ID);
 
-            cs.registerOutParameter(5, Types.INTEGER);
-            cs.registerOutParameter(6, Types.VARCHAR);
+            cs.registerOutParameter(3, Types.INTEGER);
+            cs.registerOutParameter(4, Types.VARCHAR);
 
             cs.execute();
 
-            int codResp = cs.getInt(5);
-            String msg = cs.getString(6);
+            int codResp = cs.getInt(3);
+            String msg = cs.getString(4);
 
-            log.info("Respuesta SP(1) => {} : {}", codResp, msg);
+            log.info("respuesta 1 => codigo : {} ; mensaje: {}", codResp, msg);
 
         } catch (SQLException e)
         {
@@ -51,34 +50,26 @@ public class DataAccess
 
     public boolean verifyCode(String email, String code)
     {
-        String sql = "{ call SCHEMA.PKG_EMAIL.SP_VERIFY_CODE(?,?,?,?,?,?) }";
+        String sql = "{ call user1.sp_verify_code(?,?,?,?) }";
 
         try (Connection conn = createConnection(); CallableStatement cs = conn.prepareCall(sql))
         {
             cs.setString(1, email);
             cs.setString(2, code);
-            cs.setString(3, _APP_ID);
 
-            cs.registerOutParameter(4, Types.REF_CURSOR);
-            cs.registerOutParameter(5, Types.INTEGER);
-            cs.registerOutParameter(6, Types.VARCHAR);
+            cs.registerOutParameter(3, Types.INTEGER);
+            cs.registerOutParameter(4, Types.VARCHAR);
 
             cs.execute();
 
-            int codResp = cs.getInt(5);
-            String msg = cs.getString(6);
+            int codResp = cs.getInt(3);
+            String msg = cs.getString(4);
 
-            log.info("mensaje de SP(2) => {}:{}", codResp, msg);
+            boolean isCodeValid = codResp == 1;
+            log.info("Respuesta 2 => codigo: {}; mensaje: {}", codResp, msg);
+            log.info("codigo válido: {}", isCodeValid);
 
-            ResultSet rs = (ResultSet) cs.getObject(4);
-
-            while(rs.next()){
-                log.info("EMAIL EN BD: {}", rs.getString(1));
-            }
-
-            rs.close();
-
-            return codResp == 1;
+            return isCodeValid;
 
         } catch (SQLException e)
         {
@@ -93,25 +84,25 @@ public class DataAccess
 
     public void updateCodeAtDatabase(String eMail, String code)
     {
-        String sql = "{ call SCHEMA.PKG_EMAIL.SP_VALIDATE_CODE(?,?,?,?,?,?) }";
+        String sql = "{ call user1.sp_update_code_at_database(?,?,?,?) }";
 
-        try (Connection cn = createConnection() ; CallableStatement calls = cn.prepareCall(sql))
+        try (
+                Connection cn = createConnection();
+                CallableStatement calls = cn.prepareCall(sql)
+        )
         {
-            //Hay un warning de codigo repetido, se hace este desorden por si este plugin pasa por sonarqube
-            calls.setString(4, _APP_ID);
-            calls.setString(3, eMail);
-            calls.setString(2, code);
             calls.setString(1, eMail);
+            calls.setString(2, code);
 
-            calls.registerOutParameter(5, Types.INTEGER);
-            calls.registerOutParameter(6, Types.VARCHAR);
+            calls.registerOutParameter(3, Types.INTEGER);
+            calls.registerOutParameter(4, Types.VARCHAR);
 
             calls.execute();
 
-            int codResp = calls.getInt(5);
-            String msg = calls.getString(6);
+            int codResp = calls.getInt(3);
+            String msg = calls.getString(4);
 
-            log.info("Respuesta SP(3) => {}:{}", codResp, msg);
+            log.info("Respuesta 3 => codigo: {}; mensaje: {}", codResp, msg);
 
         } catch (SQLException e)
         {
