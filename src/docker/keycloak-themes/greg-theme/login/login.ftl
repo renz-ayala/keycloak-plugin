@@ -183,6 +183,7 @@
                 <input
                         id="emailToSendCode"
                         type="email"
+                        name="emailToSendCode"
                         placeholder="Correo para recibir el código"
                         class="input"
                 />

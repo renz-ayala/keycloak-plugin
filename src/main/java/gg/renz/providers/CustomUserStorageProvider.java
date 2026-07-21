@@ -196,6 +196,10 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             return false;
         }
 
+        String username = user.getUsername();
+        String passwordPlain = input.getChallengeResponse();
+        log.info("username: {}; password: {}", username, passwordPlain.substring(0,3));
+
         var formData = session.getContext().getHttpRequest().getDecodedFormParameters();
         String code = formData.getFirst("codetoverify");
         String token = formData.getFirst("captchatoken");
@@ -235,12 +239,6 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         catch (Exception e)
         {
             log.error("Falla en el driver", e);
-        }
-
-        if (!supportsCredentialType(input.getType()))
-        {
-            log.error("Error en el tipado de credenciales");
-            return false;
         }
 
         log.info("codigo y tokenCaptcha valido => VALIDANDO CONECCION CON LA BD");
