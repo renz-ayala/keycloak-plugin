@@ -20,7 +20,7 @@ public class DataAccess
 
     public void generateVerifyCode(String email, String code)
     {
-        String sql = "{ call user1.sp_generate_verify_code(?,?,?,?) }";
+        String sql = "CALL user1.sp_generate_verify_code(?,?,?,?)";
 
         try (
                 Connection connection = createConnection();
@@ -50,7 +50,7 @@ public class DataAccess
 
     public boolean verifyCode(String email, String code)
     {
-        String sql = "{ call user1.sp_verify_code(?,?,?,?) }";
+        String sql = "CALL user1.sp_verify_code(?,?,?,?)";
 
         try (Connection conn = createConnection(); CallableStatement cs = conn.prepareCall(sql))
         {
@@ -84,7 +84,7 @@ public class DataAccess
 
     public void updateCodeAtDatabase(String eMail, String code)
     {
-        String sql = "{ call user1.sp_update_code_at_database(?,?,?,?) }";
+        String sql = "CALL user1.sp_update_code_at_database(?,?,?,?)";
 
         try (
                 Connection cn = createConnection();

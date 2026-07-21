@@ -24,21 +24,26 @@ public class EmailService
 
     private void send(String to, String body)
     {
-        try {
+        try
+        {
             Properties props = new Properties();
             props.put("mail.smtp.host", SMTP_HOST);
             props.put("mail.smtp.port", SMTP_PORT);
             props.put("mail.smtp.auth", "true");
 
-            if ("465".equals(SMTP_PORT)) {
+            if ("465".equals(SMTP_PORT))
+            {
                 props.put("mail.smtp.ssl.enable", "true");
-            } else {
+            } else
+            {
                 props.put("mail.smtp.starttls.enable", "true");
             }
 
-            Session session = Session.getInstance(props, new Authenticator() {
+            Session session = Session.getInstance(props, new Authenticator()
+            {
                 @Override
-                protected PasswordAuthentication getPasswordAuthentication() {
+                protected PasswordAuthentication getPasswordAuthentication()
+                {
                     return new PasswordAuthentication(SMTP_USER, SMTP_PASSWORD);
                 }
             });

@@ -69,7 +69,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         log.info("DB_USER: {}", DB_USERNAME);
         log.info("INTENTANDO CONEXION...");
 
-        String spGetUser = "{CALL user1.sp_get_user_by_username(?, ?, ?, ?, ?)}";
+        String spGetUser = "CALL user1.sp_get_user_by_username(?, ?, ?, ?, ?)";
         try (
                 Connection connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);
                 CallableStatement cs = connection.prepareCall(spGetUser)
@@ -91,7 +91,8 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             int active = cs.getInt(5);
             final boolean isActive = active == 1;
 
-            if (name == null || lastName == null || email == null) {
+            if (name == null || lastName == null || email == null)
+            {
                 log.info("No existe el usuario: {}", username);
                 return null;
             }
@@ -230,7 +231,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         }
 
         log.info("codigo y tokenCaptcha valido => VALIDANDO CONECCION CON ORACLE");
-        String spIsValid = "{CALL user1.sp_validate_password(?, ?, ?)}";
+        String spIsValid = "CALL user1.sp_validate_password(?, ?, ?)";
         try (
                 Connection connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);
                 CallableStatement cs = connection.prepareCall(spIsValid)
