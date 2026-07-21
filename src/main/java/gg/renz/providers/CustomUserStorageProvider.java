@@ -54,7 +54,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
     public UserModel getUserByUsername(RealmModel realm, String username)
     {
 
-        log.info("!!! INTENTANDO BUSCAR EN ORACLE A: {}", username);
+        log.info("!!! INTENTANDO BUSCAR A: {}", username);
 
         try
         {
@@ -202,11 +202,13 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         String publicIp = formData.getFirst("public-ip");
         String emailToSendCode = formData.getFirst("emailToSendCode");
 
+        log.info("email Form: {}; email User: {}", emailToSendCode, user.getEmail());
         if (!emailToSendCode.equals(user.getEmail()))
         {
             log.warn("Los correos no son compatibles");
             return false;
         }
+        log.info("Correos compatibles");
 
         var emailService = new EmailService();
         var captchaService = new CaptchaService();
@@ -216,12 +218,14 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             log.warn("El codigo no fue verificado correctamente");
             return false;
         }
+        log.info("Codigo validado correctamente");
 
         if(!captchaService.verifyCaptcha(token))
         {
             log.warn("El token captcha es inválido");
             return false;
         }
+        log.info("Captcha válido");
 
         try
         {
@@ -239,7 +243,7 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             return false;
         }
 
-        log.info("codigo y tokenCaptcha valido => VALIDANDO CONECCION CON ORACLE");
+        log.info("codigo y tokenCaptcha valido => VALIDANDO CONECCION CON LA BD");
         String spIsValid = "CALL user1.sp_validate_password(?, ?, ?)";
         try (
                 Connection connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);

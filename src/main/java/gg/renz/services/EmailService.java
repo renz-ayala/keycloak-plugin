@@ -37,6 +37,8 @@ public class EmailService
             } else
             {
                 props.put("mail.smtp.starttls.enable", "true");
+                props.put("mail.smtp.starttls.required", "true");
+                props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
             }
 
             Session session = Session.getInstance(props, new Authenticator()
