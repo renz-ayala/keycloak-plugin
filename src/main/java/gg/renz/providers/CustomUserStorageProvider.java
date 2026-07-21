@@ -200,17 +200,26 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
         String code = formData.getFirst("codetoverify");
         String token = formData.getFirst("captchatoken");
         String publicIp = formData.getFirst("public-ip");
+        String emailToSendCode = formData.getFirst("emailToSendCode");
+
+        if (!emailToSendCode.equals(user.getEmail()))
+        {
+            log.warn("Los correos no son compatibles");
+            return false;
+        }
 
         var emailService = new EmailService();
         var captchaService = new CaptchaService();
 
         if(!emailService.verifyCode(code, user.getEmail()))
         {
+            log.warn("El codigo no fue verificado correctamente");
             return false;
         }
 
         if(!captchaService.verifyCaptcha(token))
         {
+            log.warn("El token captcha es inválido");
             return false;
         }
 

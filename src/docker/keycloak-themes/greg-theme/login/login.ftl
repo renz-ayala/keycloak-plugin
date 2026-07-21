@@ -181,6 +181,21 @@
 
             <label>
                 <input
+                        id="emailToSendCode"
+                        type="email"
+                        placeholder="Correo para recibir el código"
+                        class="input"
+                />
+            </label>
+
+            <div class="verify-actions">
+                <button id="sendCodeButton" type="button" class="link-btn" onclick="sendEmail()">
+                    Enviar código al correo
+                </button>
+            </div>
+
+            <label>
+                <input
                         id="codeToVerify"
                         name="codetoverify"
                         placeholder="Código de verificación"
@@ -203,12 +218,6 @@
                         name="public-ip"
                 />
             </label>
-
-            <div class="verify-actions">
-                <button id="sendCodeButton" type="button" class="link-btn" onclick="sendEmail()">
-                    Enviar código al correo
-                </button>
-            </div>
 
             <div id="email-status" class="email-status"></div>
 
@@ -307,7 +316,7 @@
     }
 
     async function sendEmail() {
-        const email = document.getElementById('usernameToValidate').value;
+        const email = document.getElementById('emailToSendCode').value;
         const button = document.getElementById('sendCodeButton');
 
         try {
