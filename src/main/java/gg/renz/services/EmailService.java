@@ -30,9 +30,14 @@ public class EmailService
             props.put("mail.smtp.host", SMTP_HOST);
             props.put("mail.smtp.port", SMTP_PORT);
             props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.connectiontimeout", "5000");
+            props.put("mail.smtp.timeout", "5000");
 
             if ("465".equals(SMTP_PORT))
             {
+                props.put("mail.smtp.socketFactory.port", "465");
+                props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+                props.put("mail.smtp.socketFactory.fallback", "false");
                 props.put("mail.smtp.ssl.enable", "true");
             } else
             {

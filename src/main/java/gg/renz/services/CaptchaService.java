@@ -1,15 +1,16 @@
 package gg.renz.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gg.renz.DataTransferObjects.TurnstileRequest;
 import gg.renz.DataTransferObjects.TurnstileResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 
 public class CaptchaService
 {
@@ -17,21 +18,33 @@ public class CaptchaService
 
     public boolean verifyCaptcha(String token)
     {
-        if (token == null || token.isEmpty()) return false;
+        if (token == null || token.isEmpty())
+        {
+            return false;
+        }
+        log.info("token: {}", token.substring(0, 10));
+
+        String secretKey = System.getenv("TURNSTILE_SECRET_KEY");
 
         ObjectMapper mapper = new ObjectMapper();
-        TurnstileRequest input = new TurnstileRequest(System.getenv("TURNSTILE_SECRET_KEY"), token);
 
         try
         {
-            String inputJson = mapper.writeValueAsString(input);
+            var formData = String.format(
+                    "secret=%s&response=%s",
+                    URLEncoder.encode(secretKey, StandardCharsets.UTF_8),
+                    URLEncoder.encode(token, StandardCharsets.UTF_8)
+            );
+
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://challenges.cloudflare.com/turnstile/v0/siteverify"))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(inputJson))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(formData))
                     .build();
+
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info("Turnstile response: {}", response.body());
 
             TurnstileResponse output = mapper.readValue(response.body(), TurnstileResponse.class);
 
