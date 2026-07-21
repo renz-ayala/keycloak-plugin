@@ -2,21 +2,19 @@ package gg.renz.services;
 
 import gg.renz.persistence.DataAccess;
 import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Random;
 
 public class EmailService
 {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    private final String SMTP_HOST = System.getenv("SMTP_HOST");
-    private final String SMTP_PORT = System.getenv("SMTP_PORT");
-    private final String SMTP_USER = System.getenv("SMTP_USER");
     private final String SMTP_PASSWORD = System.getenv("SMTP_PASSWORD");
     private final String SMTP_FROM = System.getenv("SMTP_FROM");
 
@@ -24,52 +22,38 @@ public class EmailService
 
     private void send(String to, String body)
     {
-        try
-        {
-            Properties props = new Properties();
-            props.put("mail.smtp.host", SMTP_HOST);
-            props.put("mail.smtp.port", SMTP_PORT);
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.connectiontimeout", "5000");
-            props.put("mail.smtp.timeout", "5000");
+        try {
+            String sanitizedBody = body.replace("\"", "\\\"").replace("\n", "").replace("\r", "");
 
-            if ("465".equals(SMTP_PORT))
-            {
-                props.put("mail.smtp.socketFactory.port", "465");
-                props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-                props.put("mail.smtp.socketFactory.fallback", "false");
-                props.put("mail.smtp.ssl.enable", "true");
-            } else
-            {
-                props.put("mail.smtp.starttls.enable", "true");
-                props.put("mail.smtp.starttls.required", "true");
-                props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
-            }
-
-            Session session = Session.getInstance(props, new Authenticator()
-            {
-                @Override
-                protected PasswordAuthentication getPasswordAuthentication()
+            String jsonBody = """
                 {
-                    return new PasswordAuthentication(SMTP_USER, SMTP_PASSWORD);
+                  "from": "%s",
+                  "to": ["%s"],
+                  "subject": "Código de verificación",
+                  "html": "%s"
                 }
-            });
+                """.formatted(SMTP_FROM, to, sanitizedBody);
 
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(SMTP_FROM));
-            message.setRecipients(
-                    Message.RecipientType.TO,
-                    InternetAddress.parse(to)
-            );
-            message.setSubject("Código de verificación");
-            message.setContent(body, "text/html; charset=utf-8");
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.resend.com/emails"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + SMTP_PASSWORD)
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
 
-            Transport.send(message);
-            log.info("Correo enviado exitosamente...");
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("Correo enviado exitosamente vía API REST a: {}", to);
+            } else {
+                log.error("Error respuesta de Resend API [{}]: {}", response.statusCode(), response.body());
+                throw new RuntimeException("Resend API rehusó el correo: " + response.body());
+            }
 
         } catch (Exception e)
         {
-            log.error("Error enviando email", e);
+            log.error("Error enviando email vía HTTP", e);
             throw new RuntimeException("Error enviando email", e);
         }
     }
