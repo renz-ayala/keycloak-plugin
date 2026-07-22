@@ -1,5 +1,6 @@
 package gg.renz.services;
 
+import gg.renz.DataTransferObjects.ApiResponse;
 import gg.renz.persistence.DataAccess;
 import jakarta.mail.*;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ public class EmailService
 
     private final String SMTP_PASSWORD = System.getenv("SMTP_PASSWORD");
     private final String SMTP_FROM = System.getenv("SMTP_FROM");
+    private final String DEPLOY = System.getenv("DEPLOY");
 
     DataAccess dataAccess = new DataAccess();
 
@@ -64,22 +66,30 @@ public class EmailService
         return String.valueOf(m + new Random().nextInt(9 * m));
     }
 
-    public boolean setBody(String email)
+    public ApiResponse setBody(String email)
     {
+        String code = this.getVerifyCode();
+
         try
         {
-            String code = this.getVerifyCode();
+
             String body = """
                 <h2>Validación de correo</h2>
                 <p>Tu código es: <b>%s</b></p>
                 """.formatted(code);
             dataAccess.generateVerifyCode(email, code);
             this.send(email, body);
-            return true;
+            return new ApiResponse(
+                    true,
+                    "DEV".equals(DEPLOY) ? code : null
+            );
         } catch (Exception e)
         {
             log.error("Error enviando correo => ", e);
-            return false;
+            return new ApiResponse(
+                    false,
+                    "DEV".equals(DEPLOY) ? code : null
+            );
         }
 
     }

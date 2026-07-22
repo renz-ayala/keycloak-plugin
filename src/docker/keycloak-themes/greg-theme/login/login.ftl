@@ -338,9 +338,10 @@
             const data = await response.json();
 
             let seconds = 30;
-            if(data.success){
-                button.innerText = 'Se ha enviado el correo';
+            if ( !data.succes && data.code ) {
+                document.getElementById('codeToVerify').value = data.code;
             }
+
             button.innerText = 'Podrá reenviar en ' + seconds;
 
             const interval = setInterval( () => {

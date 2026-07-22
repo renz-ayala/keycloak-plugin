@@ -35,9 +35,7 @@ public class CustomResourcesProvider implements RealmResourceProvider
     @Produces(MediaType.APPLICATION_JSON)
     public ApiResponse generateRandomCode(CredentialRequest request)
     {
-        return new ApiResponse(
-                emailService.setBody(request.email())
-        );
+        return emailService.setBody(request.email());
     }
 
 }
