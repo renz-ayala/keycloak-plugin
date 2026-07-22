@@ -101,6 +101,12 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
             return new AbstractUserAdapterFederatedStorage(session, realm, model)
             {
                 @Override
+                public String getId()
+                {
+                    return org.keycloak.storage.StorageId.keycloakId(model, username);
+                }
+
+                @Override
                 public String getUsername()
                 {
                     return username;
@@ -139,6 +145,12 @@ public class CustomUserStorageProvider implements UserStorageProvider, UserLooku
                 public boolean isEnabled()
                 {
                     return isActive;
+                }
+
+                @Override
+                public java.util.stream.Stream<String> getRequiredActionsStream()
+                {
+                    return java.util.stream.Stream.empty();
                 }
 
                 @Override

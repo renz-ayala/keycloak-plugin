@@ -25,7 +25,7 @@ public class CaptchaService
         log.info("token: {}", token.substring(0, 10));
 
         String secretKey = System.getenv("TURNSTILE_SECRET_KEY");
-        log.info("key found{}", secretKey.substring(0, 4));
+        log.info("key found: {}", secretKey.substring(0, 4));
 
         ObjectMapper mapper = new ObjectMapper();
 
