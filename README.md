@@ -36,8 +36,8 @@ Copy-Item .\target\sso-plugin-1.0.jar .\src\docker\keycloak-plugins
 y luego dirijase a la carpeta de docker:
 ```bash
 cd .\src\docker\
-docker build --no-cache -t keycloak-sunarp-custom .
-docker run --name keycloak-sso --network keycloak-network -p 17101:8080 -v .\keycloak-themes:/opt/keycloak/themes --env-file .env keycloak-sunarp-custom start-dev
+docker build --no-cache -t keycloak-custom .
+docker run --name keycloak-sso --network keycloak-network -p 17101:8080 -v .\keycloak-themes:/opt/keycloak/themes --env-file .env keycloak-custom start-dev
 ```
 
 ## Información extra
